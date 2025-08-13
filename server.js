@@ -24,9 +24,14 @@ app.use(express.urlencoded({ extended: true }));
 
 // CORS configuration
 app.use(cors({
-  origin: ['http://localhost:4200', 'https://omniprojects2025.github.io'],
-  credentials: true,
+  origin: [
+    'http://localhost:4200',
+    'https://omniprojects2025.github.io'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
 }));
+
 
 //  improves response time.
 app.use(compression());
