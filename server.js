@@ -23,19 +23,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // CORS configuration
-app.use(cors({
+const corsOptions = {
   origin: [
     'http://localhost:4200',
     'https://omniprojects2025.github.io'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
-}));
+};
 
 
 //  improves response time.
 app.use(compression());
 
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // ✅ Allow preflight for all routes
 // Register routes
 app.use('/', userRouter);
 app.use('/', specialtiesRouter);
@@ -52,8 +54,9 @@ const startServer = async () => {
     await connectDB();
     console.log('✅ Database successfully connected');
 
-    app.listen(3000, () => {
-      console.log('🚀 Server is running on http://localhost:3000');
+    const PORT = process.env.PORT || 3000; // ✅ Important for Render
+    app.listen(PORT, () => {
+      console.log(`🚀 Server is running on port ${PORT}`);
     });
   } catch (err) {
     console.error('❌ Database connection failed', err);
