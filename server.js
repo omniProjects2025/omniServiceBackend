@@ -26,11 +26,13 @@ app.use(express.urlencoded({ extended: true }));
 const corsOptions = {
   origin: [
     'http://localhost:4200',
-    'https://omniprojects2025.github.io'
+    'https://omniprojects2025.github.io',
+    'https://omniprojects2025.github.io/omni_angular'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 };
+
 
 
 //  improves response time.
