@@ -26,9 +26,8 @@ app.use(express.urlencoded({ extended: true }));
 // CORS configuration
 const corsOptions = {
   origin: [
-    'http://localhost:4200',
-    'https://omniprojects2025.github.io',
-    'https://omniprojects2025.github.io/omni_angular'
+    'https://omniprojects2025.github.io', // GitHub Pages
+    'http://localhost:4200'               // Local Dev
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
