@@ -3,59 +3,66 @@
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./Config/database');
-const compression = require('compression'); 
+const compression = require('compression'); //This reduces payload size and improves response time.
 
-// Routers
 const userRouter = require('./apis/user');
 const specialtiesRouter = require('./apis/specialties');
 const doctorRoutes = require('./apis/doctordetails');
-const doctorsnew = require('./apis/doctors_new');
+const doctorsnew = require('./apis/doctors_new')
 const mailRoutes = require('./apis/mail');
 const healthpackage = require('./apis/healthpackages');
-const surgicalpackage = require('./apis/fixed_surgical_packages');
+const surgicalpackage = require('./apis/fixed_surgical_packages')
 const newsRouter = require('./apis/news');
 const blogsRoute = require('./apis/blogsdetails');
-
 const app = express();
 
-// ✅ CORS (must be before everything else)
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://omniprojects2025.github.io"); // GitHub Pages
-  // res.header("Access-Control-Allow-Origin", "*"); // <--- TEMP: uncomment for testing open access
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200); // ✅ handle preflight quickly
-  }
-
-  next();
-});
-
-// ✅ Middleware
+// Middleware to parse JSON bodies
 app.use(express.json());
+
+// Middleware to parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true }));
+
+// CORS configuration
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'https://omniprojects2025.github.io/omni_angular', // GitHub Pages
+    'http://localhost:4200'               // Local Dev
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
+
+// Preflight requests
+app.options('*', cors(corsOptions));
+
+
+
+//  improves response time.
 app.use(compression());
 
-// ✅ Routes
+// app.use(cors(corsOptions));
+app.options("*", cors());
+// Register routes
 app.use('/', userRouter);
 app.use('/', specialtiesRouter);
 app.use('/', doctorRoutes);
 app.use('/', mailRoutes);
 app.use('/', healthpackage);
-app.use('/', surgicalpackage);
+app.use('/', surgicalpackage)
 app.use('/', newsRouter);
 app.use('/', blogsRoute);
 app.use('/', doctorsnew);
-
-// ✅ Start server
+// Start server
 const startServer = async () => {
   try {
     await connectDB();
     console.log('✅ Database successfully connected');
 
-    const PORT = process.env.PORT || 3000; 
+    const PORT = process.env.PORT || 3000; // ✅ Important for Render
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on port ${PORT}`);
     });
