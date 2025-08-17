@@ -22,11 +22,9 @@ app.use(express.json());
 // Middleware to parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true }));
 
-// CORS configuration
-// CORS configuration
 const corsOptions = {
   origin: [
-    'https://omniprojects2025.github.io/omni_angular', // GitHub Pages
+    'https://omniprojects2025.github.io', // GitHub Pages root domain
     'http://localhost:4200'               // Local Dev
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -36,8 +34,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Preflight requests
 app.options('*', cors(corsOptions));
+
 
 
 
