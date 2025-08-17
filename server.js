@@ -18,18 +18,20 @@ const blogsRoute = require('./apis/blogsdetails');
 
 const app = express();
 
-// ✅ CORS (must be before routes)
-const corsOptions = {
-  origin: [
-    'https://omniprojects2025.github.io',  // Your GitHub Pages domain
-    'http://localhost:4200'                // Local Angular dev
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-};
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Preflight
+// ✅ CORS (must be before everything else)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://omniprojects2025.github.io"); // GitHub Pages
+  // res.header("Access-Control-Allow-Origin", "*"); // <--- TEMP: uncomment for testing open access
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200); // ✅ handle preflight quickly
+  }
+
+  next();
+});
 
 // ✅ Middleware
 app.use(express.json());
