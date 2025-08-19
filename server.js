@@ -24,8 +24,9 @@ app.use(express.urlencoded({ extended: true }));
 
 const corsOptions = {
   origin: [
+    'https://omni-fronted-final.vercel.app',               // Local Dev
     'https://omniprojects2025.github.io', // GitHub Pages root domain
-    'http://localhost:4200'               // Local Dev
+    'http://localhost:4200',
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
