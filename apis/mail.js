@@ -24,7 +24,7 @@ mailRouter.post('/send-email', upload.single('resume'), async (req, res) => {
 
   const mailOptions = {
     from: email,
-    to: 'vikshitha.voore@omnihospitals.in',
+    to: 'pallesathish4044@gmail.com',
     subject: `Message from ${firstName}`,
     text: `
       Name: ${firstName} ${lastName}

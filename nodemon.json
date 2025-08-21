@@ -1,0 +1,25 @@
+{
+  "watch": [
+    "server.js",
+    "routes",
+    "controllers",
+    "Models",
+    "Config",
+    "middlewares",
+    "apis"
+  ],
+  "ext": "js json env",
+  "ignore": [
+    "node_modules",
+    ".git",
+    "logs",
+    "uploads"
+  ],
+  "exec": "node server.js",
+  "delay": "200",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "legacyWatch": true
+}
+
