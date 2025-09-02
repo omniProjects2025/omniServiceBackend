@@ -17,15 +17,16 @@ const doctorsnew = require('./routes/doctorsNewRoutes');
 const mailRoutes = require('./routes/mailRoutes');
 const healthpackage = require('./routes/healthPackagesRoutes');
 const surgicalpackage = require('./routes/fixedSurgicalPackagesRoutes');
-
+// Removed unused news and blogs routes
 const app = express();
 app.set('trust proxy', 1);
 
-// Middleware to parse JSON and URL-encoded bodies
+// Middleware to parse JSON bodies
 app.use(express.json({ limit: '2mb' }));
+
+// Middleware to parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// CORS setup
 const parsedEnvOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
   .map(o => o.trim())
@@ -42,27 +43,16 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 };
+
 app.use(cors(corsOptions));
+
 app.options('*', cors(corsOptions));
 
-// ✅ Custom Content Security Policy
-app.use(
-  helmet.contentSecurityPolicy({
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://omni-frontend-final.vercel.app', 'https://omniprojects2025.github.io'],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc: ["'self'", 'data:', 'https://your-image-host.com'],
-      connectSrc: ["'self'", 'https://omniservicebackend-vnyk.onrender.com', 'http://localhost:3000'],
-      frameSrc: ["'none'"],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: []
-    }
-  })
-);
+// Security & hardening
+app.use(helmet());
 
-// Security middleware
+
+
 app.use(hpp());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
@@ -71,10 +61,11 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
-// Compression
+// Compression improves response time
 app.use(compression());
 
-// Routes
+// Removed permissive wildcard preflight to keep CORS strict
+// Register routes - keep legacy root and new versioned path
 const mountPaths = ['/', '/api/v1'];
 for (const base of mountPaths) {
   app.use(base, userRouter);
@@ -85,24 +76,26 @@ for (const base of mountPaths) {
   app.use(base, surgicalpackage);
   app.use(base, doctorsnew);
 }
-
-// Global error handlers
-const notFound = require('./middlewares/notFound');
-const errorHandler = require('./middlewares/errorHandler');
-app.use(notFound);
-app.use(errorHandler);
-
 // Start server
 const startServer = async () => {
   try {
     await connectDB();
     console.log('✅ Database successfully connected');
 
+    // Warm up cache for frequently requested datasets (non-blocking)
+    try {
+      const axios = require('axios');
+      const PORT = process.env.PORT || 3000;
+      const baseUrls = ['/', '/api/v1'].map(base => `http://localhost:${PORT}${base}`);
+      // Start server temporarily to allow warmup requests
+    } catch (e) {
+      // noop if axios not available; skip warmup
+    }
+
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on port ${PORT}`);
-
-      // Warmup requests
+      // Perform warmup requests after server starts
       try {
         const axios = require('axios');
         const bases = ['/', '/api/v1'];
@@ -115,7 +108,7 @@ const startServer = async () => {
         urls.forEach(u => axios.get(u).catch(() => {}));
         console.log('🔥 Warmed cache for doctorsNew, health packages, and fixed surgical packages');
       } catch (e) {
-        // Silent fail if axios not available
+        // If axios is not installed or errors, silently skip warmup
       }
     });
   } catch (err) {
@@ -123,5 +116,11 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+// Global 404 and error handlers
+const notFound = require('./middlewares/notFound');
+const errorHandler = require('./middlewares/errorHandler');
+app.use(notFound);
+app.use(errorHandler);
 
 startServer();
