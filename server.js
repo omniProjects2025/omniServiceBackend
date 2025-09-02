@@ -49,7 +49,12 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 // Security & hardening
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false  // 🔴 disable CSP for now
+  })
+);
+
 app.use(hpp());
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
