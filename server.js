@@ -35,60 +35,10 @@ app.set('trust proxy', 1);
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// CORS Configuration - Simplified and Fixed
-const allowedOrigins = [
-  // Production domains
-  'https://omni-hospitals.in',
-  'https://www.omni-hospitals.in',
-  'https://omnihospitals.in',
-  'https://www.omnihospitals.in',
-  'https://api.omni-hospitals.in',
-  // Legacy domains
-  'https://omni-fronted-final.vercel.app',
-  'https://omni-frontend-final.vercel.app',
-  'https://omniprojects2025.github.io',
-  // Development domains
-  'http://localhost:4200',
-  'http://localhost:3000',
-  'http://127.0.0.1:4200',
-  'http://127.0.0.1:3000'
-];
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Always allow localhost for development
-    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
-      return callback(null, true);
-    }
-    
-    // Allow no origin for testing tools
-    if (!origin) {
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS: Origin '${origin}' not allowed`));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: [
-    'Origin',
-    'Content-Type',
-    'Accept',
-    'Authorization',
-    'X-Requested-With',
-    'Cache-Control',
-    'Access-Control-Request-Method',
-    'Access-Control-Request-Headers'
-  ],
-  credentials: true,
-  optionsSuccessStatus: 200
-};
 
 app.use(cors({
-  origin: 'http://localhost:4200',  // Allow only your Angular dev server
+  origin: ['http://localhost:4200', 'https://omni-hospitals.in'],
   methods: ['GET','POST','PUT','DELETE'],
   credentials: true
 }));
