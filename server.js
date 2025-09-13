@@ -33,6 +33,7 @@ const parsedEnvOrigins = (process.env.CORS_ORIGINS || '')
   .filter(Boolean);
 const defaultOrigins = [
   'http://omni-hospitals.in/',
+  'https://omni-hospitals.in/',
   'https://omni-fronted-final.vercel.app',
   'https://omni-frontend-final.vercel.app',
   'https://omniprojects2025.github.io',
