@@ -2,29 +2,39 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const mailController = require('../controllers/mailController');
-const mailControllerDebug = require('../controllers/mailController.debug');
+const rateLimit = require('express-rate-limit');
 
+// Configure multer for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
-    const allowed = [
+    const allowedTypes = [
       'application/pdf',
       'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
     ];
-    if (allowed.includes(file.mimetype)) return cb(null, true);
-    return cb(new Error('Only PDF/DOC/DOCX files are allowed'));
+    if (allowedTypes.includes(file.mimetype)) {
+      return cb(null, true);
+    }
+    return cb(new Error('Only PDF, DOC, DOCX, and TXT files are allowed'));
   }
 });
 
-// Debug route to see what's being received
-router.post('/send-email-debug', upload.any(), mailControllerDebug.sendEmailDebug);
+// Rate limiting for mail routes
+const mailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 email requests per windowMs
+  message: {
+    status: 'error',
+    message: 'Too many email requests, please try again later.'
+  }
+});
 
-// Accept common field names: resume, file, document
-router.post('/send-email', upload.any(), mailController.sendEmail);
+// Mail routes
+router.post('/send-email', mailLimiter, upload.any(), mailController.sendEmail);
+router.post('/send-contact-email', mailLimiter, mailController.sendContactEmail);
 
 module.exports = router;
-
-

@@ -1,20 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const { validate, createEndpointLimiter } = require('../middlewares/inputValidation');
+const rateLimit = require('express-rate-limit');
 
-// SECURITY: Rate limiting for signup endpoint (more restrictive)
-const signupLimiter = createEndpointLimiter(
-  15 * 60 * 1000, // 15 minutes
-  5, // Only 5 signups per 15 minutes per IP
-  'Too many signup attempts, please try again later'
-);
+// Rate limiting for user routes
+const userLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 requests per windowMs
+  message: {
+    status: 'error',
+    message: 'Too many user requests, please try again later.'
+  }
+});
 
-// SECURITY: Input validation and rate limiting applied
-router.post('/signup', signupLimiter, validate('signup'), userController.signup);
+// User routes
+router.post('/signup', userLimiter, userController.signup);
 router.get('/getusers', userController.getUsers);
 router.get('/getuserbyid', userController.getUserById);
+router.put('/updateuser/:emailId', userController.updateUser);
+router.delete('/deleteuser/:emailId', userController.deleteUser);
 
 module.exports = router;
-
-

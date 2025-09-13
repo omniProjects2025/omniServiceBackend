@@ -1,16 +1,27 @@
-const User = require("../Models/user");
+const User = require('../Models/user');
 const asyncHandler = require('../middlewares/asyncHandler');
 const AppError = require('../utils/AppError');
+const { cache, DEFAULT_TTL_MS } = require('../utils/cache');
 
+// Create new user
 exports.signup = asyncHandler(async (req, res) => {
-  const { fullName, emailId, phoneNumber, location, department, message } = req.body || {};
+  const { fullName, emailId, phoneNumber, location, department, message } = req.body;
+
+  // Validation
   if (!fullName || !emailId) {
-    throw new AppError('fullName and emailId are required', 400);
+    throw new AppError('Full name and email are required', 400);
   }
 
-  const nameParts = fullName.trim().split(" ");
-  const firstName = nameParts?.[0] || "";
+  // Check if user already exists
+  const existingUser = await User.findOne({ emailId });
+  if (existingUser) {
+    throw new AppError('User with this email already exists', 409);
+  }
 
+  // Extract first name
+  const firstName = fullName.trim().split(' ')[0] || '';
+
+  // Create user
   const user = new User({
     firstName,
     emailId,
@@ -21,33 +32,118 @@ exports.signup = asyncHandler(async (req, res) => {
   });
 
   const newUser = await user.save();
-  res.json({
-    message: "User added successfully",
+
+  // Invalidate cache
+  cache.delete('users:list');
+
+  res.status(201).json({
+    status: 'success',
+    message: 'User created successfully',
     data: newUser
   });
 });
 
+// Get all users
 exports.getUsers = asyncHandler(async (req, res) => {
-  const userData = await User.find();
+  const cacheKey = 'users:list';
+  const cached = cache.get(cacheKey);
+  
+  if (cached) {
+    return res.json({
+      status: 'success',
+      message: 'Users fetched successfully',
+      data: cached
+    });
+  }
+
+  const users = await User.find({}, {
+    firstName: 1,
+    emailId: 1,
+    phoneNumber: 1,
+    location: 1,
+    department: 1,
+    message: 1,
+    createdAt: 1
+  }).lean().sort({ createdAt: -1 });
+
+  cache.set(cacheKey, users, DEFAULT_TTL_MS);
+
   res.json({
-    message: "I have got all user",
-    userData
+    status: 'success',
+    message: 'Users fetched successfully',
+    data: users
   });
 });
 
+// Get user by email
 exports.getUserById = asyncHandler(async (req, res) => {
-  const { emailId } = req.query || {};
+  const { emailId } = req.query;
+
   if (!emailId) {
-    throw new AppError('emailId is required', 400);
+    throw new AppError('Email ID is required', 400);
   }
-  const findUser = await User.findOne({ emailId });
-  if (!findUser) {
+
+  const user = await User.findOne({ emailId }).lean();
+
+  if (!user) {
     throw new AppError('User not found', 404);
   }
+
   res.json({
-    message: "I have got the user",
-    findUser
+    status: 'success',
+    message: 'User fetched successfully',
+    data: user
   });
 });
 
+// Update user
+exports.updateUser = asyncHandler(async (req, res) => {
+  const { emailId } = req.params;
+  const updateData = req.body;
 
+  if (!emailId) {
+    throw new AppError('Email ID is required', 400);
+  }
+
+  const user = await User.findOneAndUpdate(
+    { emailId },
+    updateData,
+    { new: true, runValidators: true }
+  ).lean();
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  // Invalidate cache
+  cache.delete('users:list');
+
+  res.json({
+    status: 'success',
+    message: 'User updated successfully',
+    data: user
+  });
+});
+
+// Delete user
+exports.deleteUser = asyncHandler(async (req, res) => {
+  const { emailId } = req.params;
+
+  if (!emailId) {
+    throw new AppError('Email ID is required', 400);
+  }
+
+  const user = await User.findOneAndDelete({ emailId });
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  // Invalidate cache
+  cache.delete('users:list');
+
+  res.json({
+    status: 'success',
+    message: 'User deleted successfully'
+  });
+});

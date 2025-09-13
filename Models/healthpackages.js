@@ -1,21 +1,62 @@
 const mongoose = require('mongoose');
 
 const healthpackagesSchema = new mongoose.Schema({
-    id: Number,
-    package_title: String,
-    oldPrice: Number,
-    newPrice: Number,
-    description: String,
-    image: String,
-    location: String,
-    faqs:[],
-    package_details: [String],
-    discount:Number
+  id: {
+    type: Number,
+    unique: true
+  },
+  package_title: {
+    type: String,
+    required: [true, 'Package title is required'],
+    trim: true,
+    maxlength: [200, 'Package title cannot exceed 200 characters']
+  },
+  oldPrice: {
+    type: Number,
+    min: [0, 'Price cannot be negative']
+  },
+  newPrice: {
+    type: Number,
+    required: [true, 'New price is required'],
+    min: [0, 'Price cannot be negative']
+  },
+  description: {
+    type: String,
+    trim: true,
+    maxlength: [1000, 'Description cannot exceed 1000 characters']
+  },
+  image: {
+    type: String,
+    trim: true
+  },
+  location: {
+    type: String,
+    required: [true, 'Location is required'],
+    trim: true,
+    maxlength: [100, 'Location cannot exceed 100 characters']
+  },
+  faqs: [{
+    question: String,
+    answer: String
+  }],
+  package_details: [{
+    type: String,
+    trim: true
+  }],
+  discount: {
+    type: Number,
+    min: [0, 'Discount cannot be negative'],
+    max: [100, 'Discount cannot exceed 100%']
+  }
+}, {
+  timestamps: true
 });
 
-// Add indexes for better query performance
+// Indexes for better performance
 healthpackagesSchema.index({ package_title: 1 });
 healthpackagesSchema.index({ location: 1 });
+healthpackagesSchema.index({ newPrice: 1 });
 healthpackagesSchema.index({ discount: 1 });
+healthpackagesSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model('healthpackages', healthpackagesSchema);
+module.exports = mongoose.model('HealthPackage', healthpackagesSchema);
