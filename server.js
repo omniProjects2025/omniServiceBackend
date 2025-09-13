@@ -70,7 +70,7 @@ const corsOptions = {
 };
 
 
-app.use(cors(corsOptions));
+// app.use(cors(corsOptions));
 
 // Enhanced CORS debugging
 app.use((req, res, next) => {
