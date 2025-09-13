@@ -87,8 +87,11 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-app.use(cors(corsOptions));
-
+app.use(cors({
+  origin: 'http://localhost:4200',  // Allow only your Angular dev server
+  methods: ['GET','POST','PUT','DELETE'],
+  credentials: true
+}));
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
