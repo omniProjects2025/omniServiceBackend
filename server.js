@@ -243,7 +243,9 @@ const startServer = async () => {
     }
 
     const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
+    
+    // Handle port conflicts gracefully
+    const server = app.listen(PORT, () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       // Perform warmup requests after server starts
       try {
@@ -273,6 +275,24 @@ const startServer = async () => {
         console.log('🔥 Starting cache warmup for API endpoints');
       } catch (e) {
         console.log('⚠️ Warmup skipped: axios not available');
+      }
+    });
+
+    // Handle port conflicts
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`⚠️ Port ${PORT} is already in use. Trying alternative port...`);
+        const alternativePort = PORT + 1;
+        const newServer = app.listen(alternativePort, () => {
+          console.log(`🚀 Server is running on alternative port ${alternativePort}`);
+        });
+        newServer.on('error', (altErr) => {
+          console.error(`❌ Failed to start server on ports ${PORT} and ${alternativePort}:`, altErr.message);
+          process.exit(1);
+        });
+      } else {
+        console.error('❌ Server error:', err.message);
+        process.exit(1);
       }
     });
   } catch (err) {
