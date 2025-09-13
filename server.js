@@ -17,6 +17,7 @@ const doctorsnew = require('./routes/doctorsNewRoutes');
 const mailRoutes = require('./routes/mailRoutes');
 const healthpackage = require('./routes/healthPackagesRoutes');
 const surgicalpackage = require('./routes/fixedSurgicalPackagesRoutes');
+const leadsquaredRoutes = require('./routes/leadsquaredRoutes');
 // Removed unused news and blogs routes
 const app = express();
 app.set('trust proxy', 1);
@@ -27,35 +28,112 @@ app.use(express.json({ limit: '2mb' }));
 // Middleware to parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
+// CORS Configuration - Secure and Restrictive
 const parsedEnvOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
   .map(o => o.trim())
   .filter(Boolean);
+
+// SECURE: Only allow specific, necessary origins
 const defaultOrigins = [
-  'http://omni-hospitals.in/',
-  'https://omni-fronted-final.vercel.app',
-  'https://omni-frontend-final.vercel.app',
-  'https://omniprojects2025.github.io',
+  // Production domains (HTTPS only for security)
+  'https://omni-hospitals.in',
+  'https://api.omni-hospitals.in',
+  // Development (HTTP allowed for local dev only)
   'http://localhost:4200'
 ];
+
 const corsOptions = {
-  origin: parsedEnvOrigins.length ? parsedEnvOrigins : defaultOrigins,
+  origin: function (origin, callback) {
+    // SECURITY: In production, don't allow requests with no origin
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (!origin && isProduction) {
+      return callback(new Error('Origin header required in production'));
+    }
+    
+    // Allow no origin in development for testing tools
+    if (!origin && !isProduction) return callback(null, true);
+    
+    const allowedOrigins = parsedEnvOrigins.length ? parsedEnvOrigins : defaultOrigins;
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log(`❌ CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  // SECURITY: Restrict HTTP methods to only what's needed
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  // SECURITY: Minimal required headers only
+  allowedHeaders: [
+    'Origin',
+    'Content-Type',
+    'Accept',
+    'Authorization'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  // SECURITY: Prevent credentials from being sent to wrong origins
+  preflightContinue: false
 };
 
 app.use(cors(corsOptions));
 
 app.options('*', cors(corsOptions));
 
-// Security & hardening
-app.use(helmet());
+// SECURITY: Force HTTPS in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      res.redirect(`https://${req.header('host')}${req.url}`);
+    } else {
+      next();
+    }
+  });
+}
 
+// SECURITY: Enhanced helmet configuration
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Allow CORS
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
 
-
+// SECURITY: Prevent HTTP Parameter Pollution
 app.use(hpp());
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
+
+// SECURITY: More restrictive rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 50 : 100, // Stricter in production
+  message: {
+    status: 'error',
+    message: 'Too many requests, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Skip rate limiting for health checks
+  skip: (req) => req.path === '/health' || req.path === '/api/health'
+});
+
+app.use(limiter);
 
 // Logger
 if (process.env.NODE_ENV !== 'production') {
@@ -65,18 +143,38 @@ if (process.env.NODE_ENV !== 'production') {
 // Compression improves response time
 app.use(compression());
 
-// Removed permissive wildcard preflight to keep CORS strict
-// Register routes - keep legacy root and new versioned path
-const mountPaths = ['/', '/api/v1'];
-for (const base of mountPaths) {
-  app.use(base, userRouter);
-  app.use(base, specialtiesRouter);
-  app.use(base, doctorRoutes);
-  app.use(base, mailRoutes);
-  app.use(base, healthpackage);
-  app.use(base, surgicalpackage);
-  app.use(base, doctorsnew);
-}
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'OMNI Hospitals API is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'OMNI Hospitals API is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// SECURITY: All routes properly namespaced under /api
+// This prevents accidental exposure of endpoints and improves organization
+app.use('/api', userRouter);
+app.use('/api', specialtiesRouter);
+app.use('/api', doctorRoutes);
+app.use('/api', mailRoutes);
+app.use('/api', healthpackage);
+app.use('/api', surgicalpackage);
+app.use('/api', doctorsnew);
+app.use('/api/leadsquared', leadsquaredRoutes);
+
+// SECURITY: Remove legacy routes - they create security vulnerabilities
+// All API calls should go through /api prefix for consistency and security
 // Start server
 const startServer = async () => {
   try {

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const mailController = require('../controllers/mailController');
+const mailControllerDebug = require('../controllers/mailController.debug');
 
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -17,6 +18,9 @@ const upload = multer({
     return cb(new Error('Only PDF/DOC/DOCX files are allowed'));
   }
 });
+
+// Debug route to see what's being received
+router.post('/send-email-debug', upload.any(), mailControllerDebug.sendEmailDebug);
 
 // Accept common field names: resume, file, document
 router.post('/send-email', upload.any(), mailController.sendEmail);
