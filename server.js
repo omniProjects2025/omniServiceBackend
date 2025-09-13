@@ -32,68 +32,45 @@ const parsedEnvOrigins = (process.env.CORS_ORIGINS || '')
   .map(o => o.trim())
   .filter(Boolean);
 
-// SECURE: Only allow specific, necessary origins
-const defaultOrigins = [
-  // Production domains (HTTPS only for security)
-  'https://omni-hospitals.in',
-  'https://www.omni-hospitals.in',
-  'https://omnihospitals.in',
-  'https://www.omnihospitals.in',
-  'https://api.omni-hospitals.in',
-  // Legacy domains (for backward compatibility)
-  'https://omni-fronted-final.vercel.app',
-  'https://omni-frontend-final.vercel.app',
-  'https://omniprojects2025.github.io',
-  // Development (HTTP allowed for local dev only)
-  'http://localhost:4200',
-  'http://localhost:3000',
-  'http://127.0.0.1:4200',
-  'http://127.0.0.1:3000',
-  // cPanel deployment domains (add your actual cPanel domain here)
-  'https://yourdomain.com',
-  'http://yourdomain.com'
+const cors = require("cors");
+
+// ✅ Allowed origins (production, legacy, dev)
+const allowedOrigins = [
+  "https://omni-hospitals.in",
+  "https://www.omni-hospitals.in",
+  "https://omnihospitals.in",
+  "https://www.omnihospitals.in",
+  "https://api.omni-hospitals.in",
+  "https://omni-fronted-final.vercel.app",
+  "https://omni-frontend-final.vercel.app",
+  "https://omniprojects2025.github.io",
+  "http://localhost:4200",
+  "http://localhost:3000",
+  "http://127.0.0.1:4200",
+  "http://127.0.0.1:3000",
+  "https://yourdomain.com",
+  "http://yourdomain.com"
 ];
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Always allow localhost for development
-    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
-      console.log(`✅ CORS allowed localhost origin: ${origin}`);
+  origin: (origin, callback) => {
+    console.log(`🌐 Request from origin: ${origin}`);
+    // ✅ Allow requests from no-origin tools (e.g., Postman)
+    if (!origin) return callback(null, true);
+
+    // ✅ Allow if origin is in whitelist
+    if (allowedOrigins.includes(origin) || origin.includes("localhost") || origin.includes("127.0.0.1")) {
       return callback(null, true);
     }
-    
-    // Allow no origin for testing tools
-    if (!origin) {
-      console.log(`✅ CORS allowed no-origin request`);
-      return callback(null, true);
-    }
-    
-    const allowedOrigins = defaultOrigins;
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log(`✅ CORS allowed origin: ${origin}`);
-      callback(null, true);
-    } else {
-      console.log(`❌ CORS blocked origin: ${origin}`);
-      console.log(`📝 Allowed origins: ${allowedOrigins.join(', ')}`);
-      callback(new Error(`CORS: Origin '${origin}' not allowed. Allowed origins: ${allowedOrigins.join(', ')}`));
-    }
+
+    // ❌ Block everything else
+    callback(new Error(`CORS: Origin '${origin}' not allowed.`));
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: [
-    'Origin',
-    'Content-Type',
-    'Accept',
-    'Authorization',
-    'X-Requested-With',
-    'Cache-Control',
-    'Access-Control-Request-Method',
-    'Access-Control-Request-Headers'
-  ],
-  credentials: true,
-  optionsSuccessStatus: 200,
-  preflightContinue: false
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Origin", "Content-Type", "Accept", "Authorization"],
+  credentials: true
 };
+
 
 app.use(cors(corsOptions));
 
@@ -120,17 +97,17 @@ if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     const host = req.header('host');
     const protocol = req.header('x-forwarded-proto') || (req.secure ? 'https' : 'http');
-    
+
     // Allow HTTP for localhost and development domains
     if (host && (host.includes('localhost') || host.includes('127.0.0.1'))) {
       return next();
     }
-    
+
     // Force HTTPS for production domains
     if (protocol !== 'https') {
       return res.redirect(`https://${host}${req.url}`);
     }
-    
+
     next();
   });
 }
@@ -187,8 +164,8 @@ app.use(compression());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: 'OK',
     message: 'OMNI Hospitals API is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
@@ -197,8 +174,8 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: 'OK',
     message: 'OMNI Hospitals API is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
@@ -208,7 +185,7 @@ app.get('/api/health', (req, res) => {
 
 // CORS test endpoint
 app.get('/api/cors-test', (req, res) => {
-  res.status(200).json({ 
+  res.status(200).json({
     message: 'CORS is working!',
     origin: req.get('origin') || 'no-origin',
     timestamp: new Date().toISOString(),
@@ -218,7 +195,7 @@ app.get('/api/cors-test', (req, res) => {
 
 // Simple test endpoint for debugging
 app.get('/api/test', (req, res) => {
-  res.status(200).json({ 
+  res.status(200).json({
     message: 'API is working!',
     origin: req.get('origin') || 'no-origin',
     method: req.method,
@@ -257,7 +234,7 @@ const startServer = async () => {
     }
 
     const PORT = process.env.PORT || 3000;
-    
+
     // Handle port conflicts gracefully
     const server = app.listen(PORT, () => {
       console.log(`🚀 Server is running on port ${PORT}`);
@@ -271,7 +248,7 @@ const startServer = async () => {
           '/getfixedsurgicalpackages',
           '/getspecialty'
         ];
-        
+
         // Wait a bit for server to be ready, then warm up endpoints
         setTimeout(async () => {
           console.log('🔥 Starting cache warmup for API endpoints...');
@@ -285,7 +262,7 @@ const startServer = async () => {
           }
           console.log('🎯 Cache warmup completed');
         }, 2000);
-        
+
         console.log('🔥 Starting cache warmup for API endpoints');
       } catch (e) {
         console.log('⚠️ Warmup skipped: axios not available');
