@@ -56,27 +56,22 @@ const defaultOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow no origin in development for testing tools (Postman, etc.)
-    if (!origin && process.env.NODE_ENV !== 'production') {
+    // Always allow localhost for development
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      console.log(`✅ CORS allowed localhost origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    // Allow no origin for testing tools
+    if (!origin) {
+      console.log(`✅ CORS allowed no-origin request`);
       return callback(null, true);
     }
     
     const allowedOrigins = parsedEnvOrigins.length ? parsedEnvOrigins : defaultOrigins;
     
-    // Allow localhost in development (more permissive)
-    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1')) && process.env.NODE_ENV !== 'production') {
-      console.log(`✅ CORS allowed localhost origin: ${origin}`);
-      return callback(null, true);
-    }
-    
-    // Allow localhost even in production for development access
-    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
-      console.log(`✅ CORS allowed localhost origin (production): ${origin}`);
-      return callback(null, true);
-    }
-    
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      console.log(`✅ CORS allowed origin: ${origin || 'no-origin'}`);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`✅ CORS allowed origin: ${origin}`);
       callback(null, true);
     } else {
       console.log(`❌ CORS blocked origin: ${origin}`);
@@ -84,20 +79,19 @@ const corsOptions = {
       callback(new Error(`CORS: Origin '${origin}' not allowed. Allowed origins: ${allowedOrigins.join(', ')}`));
     }
   },
-  // SECURITY: Restrict HTTP methods to only what's needed
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  // SECURITY: Minimal required headers only
   allowedHeaders: [
     'Origin',
     'Content-Type',
     'Accept',
     'Authorization',
     'X-Requested-With',
-    'Cache-Control'
+    'Cache-Control',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
   ],
   credentials: true,
   optionsSuccessStatus: 200,
-  // SECURITY: Prevent credentials from being sent to wrong origins
   preflightContinue: false
 };
 
@@ -111,7 +105,15 @@ app.use((req, res, next) => {
   next();
 });
 
-app.options('*', cors(corsOptions));
+// Explicit OPTIONS handler for preflight requests
+app.options('*', (req, res) => {
+  console.log(`🔄 Handling OPTIONS preflight request from: ${req.get('origin') || 'no-origin'}`);
+  res.header('Access-Control-Allow-Origin', req.get('origin') || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept, Authorization, X-Requested-With, Cache-Control');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.status(200).end();
+});
 
 // SECURITY: Force HTTPS in production (but allow HTTP for cPanel subdomains)
 if (process.env.NODE_ENV === 'production') {
@@ -209,6 +211,18 @@ app.get('/api/cors-test', (req, res) => {
   res.status(200).json({ 
     message: 'CORS is working!',
     origin: req.get('origin') || 'no-origin',
+    timestamp: new Date().toISOString(),
+    headers: req.headers
+  });
+});
+
+// Simple test endpoint for debugging
+app.get('/api/test', (req, res) => {
+  res.status(200).json({ 
+    message: 'API is working!',
+    origin: req.get('origin') || 'no-origin',
+    method: req.method,
+    path: req.path,
     timestamp: new Date().toISOString()
   });
 });
