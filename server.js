@@ -32,8 +32,6 @@ const parsedEnvOrigins = (process.env.CORS_ORIGINS || '')
   .map(o => o.trim())
   .filter(Boolean);
 
-const cors = require("cors");
-
 // ✅ Allowed origins (production, legacy, dev)
 const allowedOrigins = [
   "https://omni-hospitals.in",
