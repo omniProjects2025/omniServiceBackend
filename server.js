@@ -39,28 +39,44 @@ const defaultOrigins = [
   'https://www.omni-hospitals.in',
   'https://omnihospitals.in',
   'https://www.omnihospitals.in',
+  'https://api.omni-hospitals.in',
+  // Legacy domains (for backward compatibility)
+  'https://omni-fronted-final.vercel.app',
+  'https://omni-frontend-final.vercel.app',
+  'https://omniprojects2025.github.io',
   // Development (HTTP allowed for local dev only)
   'http://localhost:4200',
   'http://localhost:3000',
   'http://127.0.0.1:4200',
-  'http://127.0.0.1:3000'
+  'http://127.0.0.1:3000',
+  // cPanel deployment domains (add your actual cPanel domain here)
+  'https://yourdomain.com',
+  'http://yourdomain.com'
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // SECURITY: In production, don't allow requests with no origin
-    const isProduction = process.env.NODE_ENV === 'production';
-    if (!origin && isProduction) {
-      return callback(new Error('Origin header required in production'));
+    // Allow no origin in development for testing tools (Postman, etc.)
+    if (!origin && process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
     }
-    
-    // Allow no origin in development for testing tools
-    if (!origin && !isProduction) return callback(null, true);
     
     const allowedOrigins = parsedEnvOrigins.length ? parsedEnvOrigins : defaultOrigins;
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log(`✅ CORS allowed origin: ${origin}`);
+    // Allow localhost in development (more permissive)
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1')) && process.env.NODE_ENV !== 'production') {
+      console.log(`✅ CORS allowed localhost origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    // Allow localhost even in production for development access
+    if (origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      console.log(`✅ CORS allowed localhost origin (production): ${origin}`);
+      return callback(null, true);
+    }
+    
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`✅ CORS allowed origin: ${origin || 'no-origin'}`);
       callback(null, true);
     } else {
       console.log(`❌ CORS blocked origin: ${origin}`);
@@ -87,16 +103,33 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Enhanced CORS debugging
+app.use((req, res, next) => {
+  console.log(`🌐 Request from origin: ${req.get('origin') || 'no-origin'}`);
+  console.log(`🌐 Request method: ${req.method}`);
+  console.log(`🌐 Request path: ${req.path}`);
+  next();
+});
+
 app.options('*', cors(corsOptions));
 
-// SECURITY: Force HTTPS in production
+// SECURITY: Force HTTPS in production (but allow HTTP for cPanel subdomains)
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
-    if (req.header('x-forwarded-proto') !== 'https') {
-      res.redirect(`https://${req.header('host')}${req.url}`);
-    } else {
-      next();
+    const host = req.header('host');
+    const protocol = req.header('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+    
+    // Allow HTTP for localhost and development domains
+    if (host && (host.includes('localhost') || host.includes('127.0.0.1'))) {
+      return next();
     }
+    
+    // Force HTTPS for production domains
+    if (protocol !== 'https') {
+      return res.redirect(`https://${host}${req.url}`);
+    }
+    
+    next();
   });
 }
 
@@ -156,7 +189,8 @@ app.get('/health', (req, res) => {
     status: 'OK', 
     message: 'OMNI Hospitals API is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    origin: req.get('origin') || 'no-origin'
   });
 });
 
@@ -165,7 +199,17 @@ app.get('/api/health', (req, res) => {
     status: 'OK', 
     message: 'OMNI Hospitals API is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    origin: req.get('origin') || 'no-origin'
+  });
+});
+
+// CORS test endpoint
+app.get('/api/cors-test', (req, res) => {
+  res.status(200).json({ 
+    message: 'CORS is working!',
+    origin: req.get('origin') || 'no-origin',
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -212,14 +256,19 @@ const startServer = async () => {
           '/getspecialty'
         ];
         
-        // Wait a bit for server to be ready
-        setTimeout(() => {
-          endpoints.forEach(endpoint => {
-            axios.get(`${baseUrl}${endpoint}`)
-              .then(() => console.log(`✅ Warmed up: ${endpoint}`))
-              .catch(err => console.log(`⚠️ Warmup failed for ${endpoint}: ${err.message}`));
-          });
-        }, 1000);
+        // Wait a bit for server to be ready, then warm up endpoints
+        setTimeout(async () => {
+          console.log('🔥 Starting cache warmup for API endpoints...');
+          for (const endpoint of endpoints) {
+            try {
+              await axios.get(`${baseUrl}${endpoint}`);
+              console.log(`✅ Warmed up: ${endpoint}`);
+            } catch (err) {
+              console.log(`⚠️ Warmup failed for ${endpoint}: ${err.message}`);
+            }
+          }
+          console.log('🎯 Cache warmup completed');
+        }, 2000);
         
         console.log('🔥 Starting cache warmup for API endpoints');
       } catch (e) {

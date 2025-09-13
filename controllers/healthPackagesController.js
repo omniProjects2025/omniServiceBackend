@@ -28,6 +28,7 @@ exports.getHealthPackages = asyncHandler(async (req, res) => {
     });
   }
 
+  // Use lean() for better performance and only select needed fields
   const healthpackage = await Healthpackage.find({}, {
     package_title: 1,
     oldPrice: 1,
@@ -36,7 +37,8 @@ exports.getHealthPackages = asyncHandler(async (req, res) => {
     description: 1,
     location: 1,
     discount: 1
-  }).lean();
+  }).lean().sort({ package_title: 1 }); // Sort for consistent results
+  
   cache.set(cacheKey, healthpackage, DEFAULT_TTL_MS);
   res.json({
     message: 'Health Packages details fetched successfully',

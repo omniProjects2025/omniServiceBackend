@@ -11,4 +11,8 @@ const fixedpackagesSchema = new mongoose.Schema({
     faqs:[Object]
 });
 
+// Add indexes for better query performance
+fixedpackagesSchema.index({ package_title: 1 });
+fixedpackagesSchema.index({ price: 1 });
+
 module.exports = mongoose.model('fixedsurgicalpackages', fixedpackagesSchema);

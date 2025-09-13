@@ -28,13 +28,15 @@ exports.getFixedSurgicalPackages = asyncHandler(async (req, res) => {
     });
   }
 
+  // Use lean() for better performance and only select needed fields
   const surgicalpackage = await FixedSurgicalPackage.find({}, {
     package_title: 1,
     package_short_desc: 1,
     price: 1,
     img: 1,
     desc: 1
-  }).lean();
+  }).lean().sort({ package_title: 1 }); // Sort for consistent results
+  
   cache.set(cacheKey, surgicalpackage, DEFAULT_TTL_MS);
   res.json({
     message: 'Fixed Surgical Packages details fetched successfully',

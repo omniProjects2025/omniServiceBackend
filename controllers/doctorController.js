@@ -28,6 +28,7 @@ exports.getDoctorDetails = asyncHandler(async (req, res) => {
     });
   }
 
+  // Use lean() for better performance and only select needed fields
   const doctors = await Doctor.find({}, {
     doctor_name: 1,
     doctor_profile: 1,
@@ -37,7 +38,7 @@ exports.getDoctorDetails = asyncHandler(async (req, res) => {
     doctor_location: 1,
     location: 1,
     _id: 0
-  }).lean();
+  }).lean().sort({ doctor_name: 1 }); // Sort for consistent results
 
   cache.set(cacheKey, doctors, DEFAULT_TTL_MS);
   res.json({

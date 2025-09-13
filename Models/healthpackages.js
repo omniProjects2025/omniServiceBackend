@@ -13,4 +13,9 @@ const healthpackagesSchema = new mongoose.Schema({
     discount:Number
 });
 
+// Add indexes for better query performance
+healthpackagesSchema.index({ package_title: 1 });
+healthpackagesSchema.index({ location: 1 });
+healthpackagesSchema.index({ discount: 1 });
+
 module.exports = mongoose.model('healthpackages', healthpackagesSchema);
