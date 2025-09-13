@@ -36,9 +36,14 @@ const parsedEnvOrigins = (process.env.CORS_ORIGINS || '')
 const defaultOrigins = [
   // Production domains (HTTPS only for security)
   'https://omni-hospitals.in',
-  'https://api.omni-hospitals.in',
+  'https://www.omni-hospitals.in',
+  'https://omnihospitals.in',
+  'https://www.omnihospitals.in',
   // Development (HTTP allowed for local dev only)
-  'http://localhost:4200'
+  'http://localhost:4200',
+  'http://localhost:3000',
+  'http://127.0.0.1:4200',
+  'http://127.0.0.1:3000'
 ];
 
 const corsOptions = {
@@ -55,10 +60,12 @@ const corsOptions = {
     const allowedOrigins = parsedEnvOrigins.length ? parsedEnvOrigins : defaultOrigins;
     
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`✅ CORS allowed origin: ${origin}`);
       callback(null, true);
     } else {
       console.log(`❌ CORS blocked origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      console.log(`📝 Allowed origins: ${allowedOrigins.join(', ')}`);
+      callback(new Error(`CORS: Origin '${origin}' not allowed. Allowed origins: ${allowedOrigins.join(', ')}`));
     }
   },
   // SECURITY: Restrict HTTP methods to only what's needed
@@ -68,7 +75,9 @@ const corsOptions = {
     'Origin',
     'Content-Type',
     'Accept',
-    'Authorization'
+    'Authorization',
+    'X-Requested-With',
+    'Cache-Control'
   ],
   credentials: true,
   optionsSuccessStatus: 200,
@@ -195,17 +204,26 @@ const startServer = async () => {
       // Perform warmup requests after server starts
       try {
         const axios = require('axios');
-        const bases = ['/', '/api/v1'];
-        const urls = [];
-        for (const base of bases) {
-          urls.push(`http://localhost:${PORT}${base}getdoctors`);
-          urls.push(`http://localhost:${PORT}${base}gethealthpackages`);
-          urls.push(`http://localhost:${PORT}${base}getfixedsurgicalpackages`);
-        }
-        urls.forEach(u => axios.get(u).catch(() => {}));
-        console.log('🔥 Warmed cache for doctorsNew, health packages, and fixed surgical packages');
+        const baseUrl = `http://localhost:${PORT}/api`;
+        const endpoints = [
+          '/getdoctors',
+          '/gethealthpackages',
+          '/getfixedsurgicalpackages',
+          '/getspecialty'
+        ];
+        
+        // Wait a bit for server to be ready
+        setTimeout(() => {
+          endpoints.forEach(endpoint => {
+            axios.get(`${baseUrl}${endpoint}`)
+              .then(() => console.log(`✅ Warmed up: ${endpoint}`))
+              .catch(err => console.log(`⚠️ Warmup failed for ${endpoint}: ${err.message}`));
+          });
+        }, 1000);
+        
+        console.log('🔥 Starting cache warmup for API endpoints');
       } catch (e) {
-        // If axios is not installed or errors, silently skip warmup
+        console.log('⚠️ Warmup skipped: axios not available');
       }
     });
   } catch (err) {
