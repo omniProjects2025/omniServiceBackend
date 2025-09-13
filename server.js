@@ -68,7 +68,7 @@ const corsOptions = {
       return callback(null, true);
     }
     
-    const allowedOrigins = parsedEnvOrigins.length ? parsedEnvOrigins : defaultOrigins;
+    const allowedOrigins = defaultOrigins;
     
     if (allowedOrigins.indexOf(origin) !== -1) {
       console.log(`✅ CORS allowed origin: ${origin}`);
