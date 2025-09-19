@@ -38,7 +38,7 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 
 app.use(cors({
-  origin: ['http://localhost:4200', 'https://omni-hospitals.in'],
+  origin: ['http://localhost:4200', 'https://omni-hospitals.in', 'https://omnihospitals.in'],
   methods: ['GET','POST','PUT','DELETE'],
   credentials: true
 }));
