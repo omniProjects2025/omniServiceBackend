@@ -33,7 +33,7 @@ exports.sendEmail = async (req, res) => {
     const mailOptions = {
       from: 'info@omnihospitals.in', // Changed from user email to Gmail account
       replyTo: email,
-      to: 'Careers@omnihospitals.in',
+      to: 'careers@omnihospitals.in',
       subject: `Job Application from ${firstName} ${lastName || ''}`,
       text: `
         Name: ${firstName} ${lastName || ''}

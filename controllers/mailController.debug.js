@@ -59,7 +59,7 @@ exports.sendEmail = asyncHandler(async (req, res) => {
         }
       : {
           service: 'gmail',
-          auth: { user: 'Careers@omnihospitals.in', pass: 'sszp zzxk unpg mxrz' }
+          auth: { user: 'careers@omnihospitals.in', pass: 'sszp zzxk unpg mxrz' }
         }
   );
 
