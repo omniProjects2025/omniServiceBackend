@@ -59,7 +59,7 @@ exports.sendEmail = asyncHandler(async (req, res) => {
         }
       : {
           service: 'gmail',
-          auth: { user: 'anushajammula02@gmail.com', pass: 'iikk gxoz cfbg xotn' }
+          auth: { user: 'Careers@omnihospitals.in', pass: 'sszp zzxk unpg mxrz' }
         }
   );
 
@@ -70,12 +70,12 @@ exports.sendEmail = asyncHandler(async (req, res) => {
     throw new AppError(`SMTP verification failed: ${e.message}`, 502);
   }
 
-  const mailTo = (req.body && req.body.to) || process.env.MAIL_TO || 'pallesathish4044@gmail.com';
+  const mailTo = (req.body && req.body.to) || process.env.MAIL_TO || 'Careers@omnihospitals.in';
   const authenticatedUser =
     (transporter && transporter.options && transporter.options.auth && transporter.options.auth.user) ||
     process.env.SMTP_USER ||
     process.env.SMTP_FROM ||
-    'no-reply@yourdomain.com';
+    'no-reply@Careers@omnihospitals.in';
 
   const mailOptions = {
     from: authenticatedUser,

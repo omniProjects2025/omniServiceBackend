@@ -21,8 +21,8 @@ exports.sendEmail = async (req, res) => {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'anushajammula02@gmail.com', 
-        pass: 'iikk gxoz cfbg xotn',
+        user: 'info@omnihospitals.in', 
+        pass: 'sszp zzxk unpg mxrz',
       },
     });
 
@@ -31,9 +31,9 @@ exports.sendEmail = async (req, res) => {
     console.log('Transporter verified successfully');
 
     const mailOptions = {
-      from: 'anushajammula02@gmail.com', // Changed from user email to Gmail account
+      from: 'info@omnihospitals.in', // Changed from user email to Gmail account
       replyTo: email,
-      to: 'pallesathish4044@gmail.com',
+      to: 'Careers@omnihospitals.in',
       subject: `Job Application from ${firstName} ${lastName || ''}`,
       text: `
         Name: ${firstName} ${lastName || ''}
